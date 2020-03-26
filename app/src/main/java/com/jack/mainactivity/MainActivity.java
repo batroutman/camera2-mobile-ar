@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean mFlashSupported;
     private Handler mBackgroundHandler;
     private HandlerThread mBackgroundThread;
+    private ImageReader reader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,17 +160,18 @@ public class MainActivity extends AppCompatActivity {
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraDevice.getId());
-            Size[] jpegSizes = null;
+            Size[] imgSizes = null;
             if (characteristics != null) {
-                jpegSizes = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.JPEG);
+                imgSizes = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.RAW_SENSOR);
             }
+            Log.v("TAKE_PICTURE", "TEST LOG");
             int width = 640;
             int height = 480;
-            if (jpegSizes != null && 0 < jpegSizes.length) {
-                width = jpegSizes[0].getWidth();
-                height = jpegSizes[0].getHeight();
+            if (imgSizes != null && 0 < imgSizes.length) {
+                width = imgSizes[0].getWidth();
+                height = imgSizes[0].getHeight();
             }
-            ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
+            ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.RAW_SENSOR, 1);
             List<Surface> outputSurfaces = new ArrayList<Surface>(2);
             outputSurfaces.add(reader.getSurface());
             outputSurfaces.add(new Surface(textureView.getSurfaceTexture()));
@@ -179,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
             // Orientation
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-            final File file = new File(Environment.getExternalStorageDirectory() + "/pic.jpg");
+            final File file = new File(Environment.getExternalStorageDirectory() + "/pic.png");
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader reader) {
@@ -190,6 +192,8 @@ public class MainActivity extends AppCompatActivity {
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
                         save(bytes);
+                        // Toast.makeText(MainActivity.this, "Toast!", Toast.LENGTH_SHORT).show();
+
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     } catch (IOException e) {
@@ -227,7 +231,10 @@ public class MainActivity extends AppCompatActivity {
                 public void onConfigured(CameraCaptureSession session) {
                     try {
                         session.capture(captureBuilder.build(), captureListener, mBackgroundHandler);
+                        // session.setRepeatingRequest(captureBuilder.build(), captureListener, mBackgroundHandler);
                     } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -240,16 +247,63 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
+// boom
     protected void createCameraPreview() {
         try {
+            Log.v("WIDTH-", "" + imageDimension.getWidth());
+            Log.v("HEIGHT-", "" + imageDimension.getHeight());
+
+            int width = 640;
+            int height = 480;
+
             SurfaceTexture texture = textureView.getSurfaceTexture();
             assert texture != null;
-            texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
+            texture.setDefaultBufferSize(width, height);
             Surface surface = new Surface(texture);
-            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD); // TEMPLATE_PREVIEW originally
             captureRequestBuilder.addTarget(surface);
-            cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback() {
+
+            reader = ImageReader.newInstance(width, height, ImageFormat.YUV_420_888, 1);
+            captureRequestBuilder.addTarget(reader.getSurface());
+
+            ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
+
+                public long lastTime = System.currentTimeMillis();
+
+                @Override
+                public void onImageAvailable(ImageReader reader) {
+                    Image image = null;
+
+//                    try{
+                        image = reader.acquireLatestImage();
+                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        byte[] bytes = new byte[buffer.capacity()];
+                        buffer.get(bytes);
+                        long dummy = 0;
+                        for(int i = 0; i < buffer.capacity(); i++) {
+                            dummy += bytes[i];
+                        }
+                        Log.v("DUMMY", "" + dummy);
+                        Log.v("NUM_BYTES", "" + buffer.capacity());
+                        // Toast.makeText(MainActivity.this, "Toast!", Toast.LENGTH_SHORT).show();
+                        image.close();
+//                    } catch (Exception e) {
+//                        Log.v("OOF", "Busted in onImageAvailable");
+//                    }
+
+                    long current = System.currentTimeMillis();
+                    long diff = current - this.lastTime;
+                    this.lastTime = current;
+                    double secDiff = diff / 1000000.0;
+                    double fps = 1 / secDiff;
+                    Log.v("reader", "OnImageAvailable: " + secDiff + " sec ==== " + fps + " fps");
+                }
+
+            };
+
+            reader.setOnImageAvailableListener(readerListener, mBackgroundHandler);
+
+            cameraDevice.createCaptureSession(Arrays.asList(surface, reader.getSurface()), new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     //The camera is already closed
@@ -293,12 +347,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected void updatePreview() {
+        Log.v("UPDATE_PREVIEW", "Attempting to update review");
         if (null == cameraDevice) {
             Log.e(TAG, "updatePreview error, return");
         }
         captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+
+
         try {
-            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
+
+            CameraCaptureSession.CaptureCallback capCallback = new CameraCaptureSession.CaptureCallback(){
+                public long lastTime = System.currentTimeMillis();
+                @Override
+                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result){
+                    long current = System.currentTimeMillis();
+                    long diff = current - this.lastTime;
+                    this.lastTime = current;
+                    double secDiff = diff / 1000000.0;
+                    double fps = 1 / secDiff;
+                    // Log.v("updatePreview", "onCaptureCompleted: " + secDiff + " sec ==== " + fps + " fps");
+                }
+            };
+            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), capCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
