@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Android-Camera2-API-Example.iml" filepath="$PROJECT_DIR$/Android-Camera2-API-Example.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/Android-Camera2-API-Example-app.iml" filepath="$PROJECT_DIR$/app/Android-Camera2-API-Example-app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Research-Android-Camera2-API-Example.iml" filepath="$PROJECT_DIR$/Research-Android-Camera2-API-Example.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

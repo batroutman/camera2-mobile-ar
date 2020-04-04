@@ -24,6 +24,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.Range;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.Surface;
@@ -253,8 +254,8 @@ public class MainActivity extends AppCompatActivity {
             Log.v("WIDTH-", "" + imageDimension.getWidth());
             Log.v("HEIGHT-", "" + imageDimension.getHeight());
 
-            int width = 640;
-            int height = 480;
+            int width = 320;
+            int height = 240;
 
             SurfaceTexture texture = textureView.getSurfaceTexture();
             assert texture != null;
@@ -263,7 +264,11 @@ public class MainActivity extends AppCompatActivity {
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD); // TEMPLATE_PREVIEW originally
             captureRequestBuilder.addTarget(surface);
 
-            reader = ImageReader.newInstance(width, height, ImageFormat.YUV_420_888, 1);
+            Range<Integer> fps = Range.create(90,240);
+
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fps);
+
+            reader = ImageReader.newInstance(width, height, ImageFormat.YUV_420_888, 5);
             captureRequestBuilder.addTarget(reader.getSurface());
 
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
@@ -272,31 +277,38 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onImageAvailable(ImageReader reader) {
-                    Image image = null;
 
-//                    try{
+                    Image image = null;
+                    try {
+
                         image = reader.acquireLatestImage();
                         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
                         long dummy = 0;
-                        for(int i = 0; i < buffer.capacity(); i++) {
+                        for (int i = 0; i < buffer.capacity(); i++) {
                             dummy += bytes[i];
                         }
                         Log.v("DUMMY", "" + dummy);
                         Log.v("NUM_BYTES", "" + buffer.capacity());
                         // Toast.makeText(MainActivity.this, "Toast!", Toast.LENGTH_SHORT).show();
-                        image.close();
-//                    } catch (Exception e) {
-//                        Log.v("OOF", "Busted in onImageAvailable");
-//                    }
 
-                    long current = System.currentTimeMillis();
-                    long diff = current - this.lastTime;
-                    this.lastTime = current;
-                    double secDiff = diff / 1000000.0;
-                    double fps = 1 / secDiff;
-                    Log.v("reader", "OnImageAvailable: " + secDiff + " sec ==== " + fps + " fps");
+
+                        long current = System.currentTimeMillis();
+                        long diff = current - this.lastTime;
+                        this.lastTime = current;
+                        double secDiff = diff / 1000000.0;
+                        double fps = 1 / secDiff;
+                        Log.v("reader", "OnImageAvailable: " + secDiff + " sec ==== " + fps + " fps");
+                    } catch (Exception e) {
+                        Log.v("OOF", "onImageAvailable exception");
+                        e.printStackTrace();
+                    } finally {
+                        if (image != null) {
+                            image.close();
+                        }
+                    }
+
                 }
 
             };
