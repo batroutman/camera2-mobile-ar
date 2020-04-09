@@ -34,7 +34,7 @@ import android.widget.Toast;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import ARPipeline.Frame;
+import ARPipeline.*;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
     public int HEIGHT = 480;
 
     private static final String TAG = "Camera2MobileAR";
-    private Button takePictureButton;
     private TextureView textureView;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
@@ -64,6 +63,8 @@ public class MainActivity extends AppCompatActivity {
     private HandlerThread mBackgroundThread;
     private ImageReader reader;
 
+    public ARPipeline pipeline = new TestARPipeline(WIDTH, HEIGHT);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
         textureView = (TextureView) findViewById(R.id.texture);
         assert textureView != null;
         textureView.setSurfaceTextureListener(textureListener);
-        assert takePictureButton != null;
-
+        this.pipeline.setOutputTexture(textureView);
+        new Thread(this.pipeline).start();
     }
 
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
@@ -166,15 +167,15 @@ public class MainActivity extends AppCompatActivity {
                         ByteBuffer bufferY = image.getPlanes()[0].getBuffer();
                         byte[] bytesY = new byte[bufferY.capacity()];
                         bufferY.get(bytesY);
-                        ByteBuffer bufferU = image.getPlanes()[0].getBuffer();
+                        ByteBuffer bufferU = image.getPlanes()[1].getBuffer();
                         byte[] bytesU = new byte[bufferU.capacity()];
                         bufferU.get(bytesU);
-                        ByteBuffer bufferV = image.getPlanes()[0].getBuffer();
+                        ByteBuffer bufferV = image.getPlanes()[2].getBuffer();
                         byte[] bytesV = new byte[bufferV.capacity()];
                         bufferV.get(bytesV);
 
                         Frame frame = new Frame(bytesY, bytesU, bytesV);
-
+                        pipeline.addFrame(frame);
                         // buffer.capacity() and bytes
 
                         // time differential

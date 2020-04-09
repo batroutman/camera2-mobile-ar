@@ -1,8 +1,16 @@
 package ARPipeline;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
+import android.util.Log;
+import android.view.TextureView;
+
 public class TestARPipeline extends ARPipeline {
 
-    public final int MIN_FRAMETIME = 5;
+    public final int MIN_FRAMETIME = 16;
 
     //////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////        PROPERTIES        /////////////////////////////
@@ -31,15 +39,25 @@ public class TestARPipeline extends ARPipeline {
         super();
     }
 
+    public TestARPipeline(int width, int height) {
+        super(width, height);
+    }
+
+    public TestARPipeline(int width, int height, TextureView outputTexture) {
+        super(width, height, outputTexture);
+    }
+
     @Override
     public void addFrame(Frame frame) {
 
         if (this.acceptingFrames) {
+            Log.v("TestARPipeline", "acceptingFrames");
             this.acceptingFrames = false;
             synchronized (this.currentFrameLock) {
                 this.currentFrame = frame;
             }
         } else {
+            Log.v("TestARPipeline", "NOT acceptingFrames");
             this.onDeckFrame = frame;
         }
 
@@ -56,6 +74,25 @@ public class TestARPipeline extends ARPipeline {
         }
     }
 
+    // generate image and draw to outputTexture
+    private void drawImage() {
+        int numPixels = this.currentFrame.getY().length;
+        int [] totalData = new int[numPixels];
+        for (int i = 0; i < numPixels; i++) {
+            byte pixelVal = this.currentFrame.getY()[i];
+            byte A = (byte) 255;
+            byte R = pixelVal;
+            byte G = pixelVal;
+            byte B = pixelVal;
+            int color = (A & 0xff) << 24 | (R & 0xff) << 16 | (G & 0xff) << 8 | (B & 0xff);
+
+            totalData[i] = color;
+        }
+        Bitmap bitmap = Bitmap.createBitmap(totalData, this.width, this.height, Bitmap.Config.RGBA_F16);
+        BitmapDrawable bitmapDrawable = new BitmapDrawable(bitmap);
+        this.outputTexture.setForeground(bitmapDrawable);
+    }
+
     @Override
     public void mainLoop() {
 
@@ -64,7 +101,7 @@ public class TestARPipeline extends ARPipeline {
             synchronized (this.currentFrameLock) {
                 if (this.currentFrame != null) {
 
-
+                    this.drawImage();
 
                 }
             }
