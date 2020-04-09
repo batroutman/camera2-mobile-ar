@@ -90,7 +90,7 @@ public class TestARPipeline extends ARPipeline {
         }
         Bitmap bitmap = Bitmap.createBitmap(totalData, this.width, this.height, Bitmap.Config.RGBA_F16);
         BitmapDrawable bitmapDrawable = new BitmapDrawable(bitmap);
-        this.outputTexture.setForeground(bitmapDrawable);
+        this.outputView.currentBitmap = bitmap;
     }
 
     @Override

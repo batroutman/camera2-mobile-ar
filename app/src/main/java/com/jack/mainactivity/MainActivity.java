@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "Camera2MobileAR";
     private TextureView textureView;
+    private ARDisplay view;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     static {
@@ -72,7 +73,8 @@ public class MainActivity extends AppCompatActivity {
         textureView = (TextureView) findViewById(R.id.texture);
         assert textureView != null;
         textureView.setSurfaceTextureListener(textureListener);
-        this.pipeline.setOutputTexture(textureView);
+        view = (ARDisplay) findViewById(R.id.view);
+        this.pipeline.setOutputView(view);
         new Thread(this.pipeline).start();
     }
 

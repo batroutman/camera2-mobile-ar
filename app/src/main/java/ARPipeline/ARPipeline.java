@@ -1,6 +1,9 @@
 package ARPipeline;
 
 import android.view.TextureView;
+import android.view.View;
+
+import com.jack.mainactivity.ARDisplay;
 
 /// ARPipeline - a basic parent class for AR Systems to use in order to receive image frames and broadcast output
 public abstract class ARPipeline implements Runnable{
@@ -8,7 +11,7 @@ public abstract class ARPipeline implements Runnable{
     // flag to indicate if the system is running or not
     protected boolean running = false;
 
-    protected TextureView outputTexture;
+    protected ARDisplay outputView;
 
     protected int width;
     protected int height;
@@ -23,7 +26,7 @@ public abstract class ARPipeline implements Runnable{
     public ARPipeline(int width, int height, TextureView outputTexture) {
         this.width = width;
         this.height = height;
-        this.outputTexture = outputTexture;
+        this.outputView = outputView;
     }
 
     // give a new frame to the AR system
@@ -44,12 +47,12 @@ public abstract class ARPipeline implements Runnable{
 
     public abstract void mainLoop();
 
-    public TextureView getOutputTexture() {
-        return outputTexture;
+    public View getOutputView() {
+        return outputView;
     }
 
-    public void setOutputTexture(TextureView outputTexture) {
-        this.outputTexture = outputTexture;
+    public void setOutputView(ARDisplay outputView) {
+        this.outputView = outputView;
     }
 
     public int getWidth() {
