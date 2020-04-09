@@ -34,6 +34,8 @@ import android.widget.Toast;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import ARPipeline.Frame;
+
 public class MainActivity extends AppCompatActivity {
 
     public int WIDTH = 640;
@@ -161,9 +163,19 @@ public class MainActivity extends AppCompatActivity {
                     try {
 
                         image = reader.acquireLatestImage();
-                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                        byte[] bytes = new byte[buffer.capacity()];
-                        buffer.get(bytes);
+
+                        ByteBuffer bufferY = image.getPlanes()[0].getBuffer();
+                        byte[] bytesY = new byte[bufferY.capacity()];
+                        bufferY.get(bytesY);
+                        ByteBuffer bufferU = image.getPlanes()[0].getBuffer();
+                        byte[] bytesU = new byte[bufferU.capacity()];
+                        bufferU.get(bytesU);
+                        ByteBuffer bufferV = image.getPlanes()[0].getBuffer();
+                        byte[] bytesV = new byte[bufferV.capacity()];
+                        bufferV.get(bytesV);
+
+                        Frame frame = new Frame(bytesY, bytesU, bytesV);
+
                         // buffer.capacity() and bytes
 
                         // time differential
