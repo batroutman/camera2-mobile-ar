@@ -8,9 +8,12 @@ import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.TextureView;
 
+import java.util.Random;
+
 public class TestARPipeline extends ARPipeline {
 
-    public final int MIN_FRAMETIME = 16;
+    public final int MIN_FRAMETIME = 0;
+    public Random rand = new Random();
 
     //////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////        PROPERTIES        /////////////////////////////
@@ -76,11 +79,13 @@ public class TestARPipeline extends ARPipeline {
 
     // generate image and draw to outputTexture
     private void drawImage() {
+        long start = System.nanoTime();
         int numPixels = this.currentFrame.getY().length;
         int [] totalData = new int[numPixels];
         for (int i = 0; i < numPixels; i++) {
             byte pixelVal = this.currentFrame.getY()[i];
-            byte A = (byte) 255;
+            int num = this.rand.nextInt(2);
+            byte A = (byte) (255 * num);
             byte R = pixelVal;
             byte G = pixelVal;
             byte B = pixelVal;
@@ -88,8 +93,12 @@ public class TestARPipeline extends ARPipeline {
 
             totalData[i] = color;
         }
+
         Bitmap bitmap = Bitmap.createBitmap(totalData, this.width, this.height, Bitmap.Config.RGBA_F16);
-        BitmapDrawable bitmapDrawable = new BitmapDrawable(bitmap);
+        long stop = System.nanoTime();
+        double diff = 1000000000.0 / (stop - start);
+        Log.v("IMG_CREATE", "Time to create bitmap: " + diff + "fps");
+
         this.outputView.currentBitmap = bitmap;
         this.outputView.invalidate();
     }

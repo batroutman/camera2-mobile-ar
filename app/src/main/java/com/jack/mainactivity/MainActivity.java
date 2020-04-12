@@ -38,8 +38,8 @@ import ARPipeline.*;
 
 public class MainActivity extends AppCompatActivity {
 
-    public int WIDTH = 640;
-    public int HEIGHT = 480;
+    public int WIDTH = 320;
+    public int HEIGHT = 240;
 
     private static final String TAG = "Camera2MobileAR";
     private TextureView textureView;
