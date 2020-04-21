@@ -5,6 +5,10 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -36,7 +40,7 @@ import java.util.Arrays;
 
 import ARPipeline.*;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     public int WIDTH = 320;
     public int HEIGHT = 240;
@@ -66,6 +70,11 @@ public class MainActivity extends AppCompatActivity {
 
     public ARPipeline pipeline = new TestARPipeline(WIDTH, HEIGHT);
 
+    private float lastX, lastY, lastZ;
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private long lastMeasurementTime = System.nanoTime();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,6 +85,16 @@ public class MainActivity extends AppCompatActivity {
         view = (ARDisplay) findViewById(R.id.view);
         this.pipeline.setOutputView(view);
         new Thread(this.pipeline).start();
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
+            // success! we have an accelerometer
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        } else {
+            // fail! we dont have an accelerometer!
+        }
+
     }
 
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
@@ -302,6 +321,8 @@ public class MainActivity extends AppCompatActivity {
         } else {
             textureView.setSurfaceTextureListener(textureListener);
         }
+
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     @Override
@@ -310,5 +331,28 @@ public class MainActivity extends AppCompatActivity {
         //closeCamera();
         stopBackgroundThread();
         super.onPause();
+
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        Log.v("ACCURACY", "accuracy changed.");
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        long now = System.nanoTime();
+        double diffFrameRate = 1000000000.0 / (now - lastMeasurementTime);
+        lastMeasurementTime = now;
+
+        // get the change of the x,y,z values of the accelerometer
+        double x = event.values[0];
+        double y = event.values[1];
+        double z = event.values[2];
+
+        Log.v("ACCEL", "framerate: " + diffFrameRate + "fps");
+
     }
 }
